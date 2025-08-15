@@ -96,6 +96,7 @@ namespace Inviter
             zh.Add("Recruitment is not running, can not cancel", "限时自动邀请未运行，无法取消");
             zh.Add("Time can not be negative", "时间不能为负数");
             zh.Add("Please enter amount of time in minutes", "请输入分钟数作为时长");
+            zh.Add("Recruitment will finish after {0} invitation attempts", "自动邀请将在完成{0}次邀请后关闭");
         }
         private void LoadFr()
         {
