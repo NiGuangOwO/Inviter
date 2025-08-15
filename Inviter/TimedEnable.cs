@@ -1,60 +1,48 @@
-﻿using Dalamud.Game.Text.SeStringHandling;
+﻿using Dalamud.Game.Gui.Toast;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
-using Inviter.Gui;
-using Dalamud.Game.Gui.Toast;
 
 namespace Inviter
 {
     class TimedEnable
     {
-        internal Inviter plugin;
-        internal ulong runUntil = 0;
-        internal ulong nextNotification = 0;
+        internal long runUntil = 0;
+        internal long nextNotification = 0;
         internal volatile bool isRunning = false;
         internal uint MaxInvitations = 0;
         internal uint InvitationAttempts = 0;
-        internal Localizer Localizer => plugin.Localizer;
 
-        internal TimedEnable(Inviter plugin)
-        {
-            this.plugin = plugin;
-        }
+        internal TimedEnable() { }
 
         internal void Run()
         {
             isRunning = true;
-            nextNotification = Native.GetTickCount64() + (runUntil - Native.GetTickCount64())/2;
+            nextNotification = Environment.TickCount64 + (runUntil - Environment.TickCount64) / 2;
             try
             {
-                plugin.Config.Enable = true;
-                while (Native.GetTickCount64() < runUntil)
+                Inviter.Plugin.Config.Enable = true;
+                while (Environment.TickCount64 < runUntil)
                 {
                     Thread.Sleep(1000);
-                    if (!plugin.Config.Enable)
+                    if (!Inviter.Plugin.Config.Enable)
                     {
                         runUntil = 0;
                         break;
                     }
-                    if(Native.GetTickCount64() >= nextNotification && Native.GetTickCount64() < runUntil)
+                    if (Environment.TickCount64 >= nextNotification && Environment.TickCount64 < runUntil)
                     {
-                        Inviter.ToastGui.ShowQuest(
-                            String.Format(Localizer.Localize("Automatic recruitment enabled, {0} minutes left"),
-                            Math.Ceiling((runUntil - Native.GetTickCount64()) / 60d / 1000d))
-                            );
+                        Inviter.ToastGui.ShowQuest(string.Format(Inviter.Plugin.localizer.Localize("Automatic recruitment enabled, {0} minutes left"),
+                            Math.Ceiling((runUntil - Environment.TickCount64) / 60d / 1000d)));
                         UpdateTimeNextNotification();
                     }
                 }
-                Inviter.ToastGui.ShowQuest(Localizer.Localize("Automatic recruitment finished"), new QuestToastOptions()
-                {
-                    DisplayCheckmark = true,
-                    PlaySound = true
-                }) ;
-                plugin.Config.Enable = false;
+                Inviter.ToastGui.ShowQuest(Inviter.Plugin.localizer.Localize("Automatic recruitment finished"),
+                    new QuestToastOptions()
+                    {
+                        DisplayCheckmark = true,
+                        PlaySound = true
+                    });
+                Inviter.Plugin.Config.Enable = false;
             }
             catch (Exception e)
             {
@@ -65,18 +53,18 @@ namespace Inviter
 
         internal void UpdateTimeNextNotification()
         {
-            nextNotification = Native.GetTickCount64() + Math.Max(60 * 1000, (runUntil - Native.GetTickCount64()) / 2);
+            nextNotification = Environment.TickCount64 + Math.Max(60 * 1000, (runUntil - Environment.TickCount64) / 2);
         }
 
         internal bool TryProcessCommandTimedEnable(string args)
         {
-            var argsArray = args.Split(new string[] { " " }, StringSplitOptions.RemoveEmptyEntries);
-            if(argsArray.Length == 2 && uint.TryParse(argsArray[0], out var time) && uint.TryParse(argsArray[1], out var limit))
+            var argsArray = args.Split([" "], StringSplitOptions.RemoveEmptyEntries);
+            if (argsArray.Length == 2 && uint.TryParse(argsArray[0], out var time) && uint.TryParse(argsArray[1], out var limit))
             {
                 ProcessCommandTimedEnable(time, limit);
                 return true;
             }
-            else if(uint.TryParse(argsArray[0], out time))
+            else if (uint.TryParse(argsArray[0], out time))
             {
                 ProcessCommandTimedEnable(time, 0);
                 return true;
@@ -86,23 +74,21 @@ namespace Inviter
 
         void ProcessCommandTimedEnable(uint timeInMinutes, uint limit)
         {
-            if (plugin.Config.Enable && !isRunning)
+            if (Inviter.Plugin.Config.Enable && !isRunning)
             {
-                Inviter.ToastGui.ShowError(Localizer.Localize(
-                        "Can't start timed recruitment because Inviter is turned on permanently"
-                    ));
+                Inviter.ToastGui.ShowError(Inviter.Plugin.localizer.Localize("Can't start timed recruitment because Inviter is turned on permanently"));
             }
             else
             {
                 try
                 {
-                    var time = timeInMinutes; 
+                    var time = timeInMinutes;
                     MaxInvitations = limit;
                     InvitationAttempts = 0;
                     if (time > 0)
                     {
-                        runUntil = Native.GetTickCount64() + time * 60 * 1000;
-                        if (isRunning) 
+                        runUntil = Environment.TickCount64 + time * 60 * 1000;
+                        if (isRunning)
                         {
                             UpdateTimeNextNotification();
                         }
@@ -110,22 +96,20 @@ namespace Inviter
                         {
                             new Thread(new ThreadStart(Run)).Start();
                         }
-                        Inviter.ToastGui.ShowQuest(
-                            String.Format(Localizer.Localize("Commenced automatic recruitment for {0} minutes"), time)
-                            , new QuestToastOptions()
+                        Inviter.ToastGui.ShowQuest(string.Format(Inviter.Plugin.localizer.Localize("Commenced automatic recruitment for {0} minutes"), time),
+                            new QuestToastOptions()
                             {
                                 DisplayCheckmark = true,
                                 PlaySound = true
                             });
-                        if(limit > 0)
+                        if (limit > 0)
                         {
-                            Inviter.ToastGui.ShowQuest(
-                            String.Format(Localizer.Localize("Recruitment will finish after {0} invitation attempts"), limit)
-                            , new QuestToastOptions()
-                            {
-                                DisplayCheckmark = false,
-                                PlaySound = false
-                            });
+                            Inviter.ToastGui.ShowQuest(string.Format(Inviter.Plugin.localizer.Localize("Recruitment will finish after {0} invitation attempts"), limit),
+                                new QuestToastOptions()
+                                {
+                                    DisplayCheckmark = false,
+                                    PlaySound = false
+                                });
                         }
                     }
                     else if (time == 0)
@@ -136,18 +120,17 @@ namespace Inviter
                         }
                         else
                         {
-                            Inviter.ToastGui.ShowError(Localizer.Localize("Recruitment is not running, can not cancel"));
+                            Inviter.ToastGui.ShowError(Inviter.Plugin.localizer.Localize("Recruitment is not running, can not cancel"));
                         }
                     }
                     else
                     {
-                        Inviter.ToastGui.ShowError(Localizer.Localize("Time can not be negative"));
+                        Inviter.ToastGui.ShowError(Inviter.Plugin.localizer.Localize("Time can not be negative"));
                     }
                 }
                 catch (Exception e)
                 {
-                    // plugin.Interface.Framework.Gui.Chat.Print("Error: " + e.Message + "\n" + e.StackTrace);
-                    Inviter.ToastGui.ShowError(Localizer.Localize("Please enter amount of time in minutes"));
+                    Inviter.ToastGui.ShowError(Inviter.Plugin.localizer.Localize("Please enter amount of time in minutes"));
                 }
             }
         }
