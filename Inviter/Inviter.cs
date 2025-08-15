@@ -121,6 +121,7 @@ namespace Inviter
 
         public void Dispose()
         {
+            timedRecruitment.FinishTimer();
             ChatGui.ChatMessage -= Chat_OnChatMessage;
             ClientState.TerritoryChanged -= TerritoryChanged;
             Interface.UiBuilder.Draw -= WindowSystem.Draw;
@@ -128,12 +129,6 @@ namespace Inviter
             Interface.UiBuilder.OpenConfigUi -= ConfigurationWindow.Toggle;
             WindowSystem.RemoveAllWindows();
             CmdManager.RemoveHandler("/xinvite");
-
-            if (timedRecruitment.isRunning)
-            {
-                timedRecruitment.runUntil = 0;
-                Config.Enable = false;
-            }
             easierProcessCIDHook.Dispose();
         }
 
@@ -310,7 +305,7 @@ namespace Inviter
                     {
                         Log($"Full party, won't invite.");
                         if (timedRecruitment.isRunning)
-                            timedRecruitment.runUntil = 0;
+                            timedRecruitment.FinishTimer();
                         return;
                     }
                     else
@@ -334,7 +329,7 @@ namespace Inviter
                             if (timedRecruitment.InvitationAttempts >= timedRecruitment.MaxInvitations)
                             {
                                 Log($"Reached target amound of invitations, won't invite {timedRecruitment.InvitationAttempts}/{timedRecruitment.MaxInvitations}");
-                                timedRecruitment.runUntil = 0;
+                                timedRecruitment.FinishTimer();
                                 return;
                             }
                             else
