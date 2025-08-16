@@ -6,5 +6,6 @@
     <PackageProjectUrl>https://github.com/Bluefissure/Inviter</PackageProjectUrl>
     <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
     <IsPackable>false</IsPackable>
+    <Platforms>x64</Platforms>
   </PropertyGroup>
 </Project>
