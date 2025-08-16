@@ -27,32 +27,28 @@ namespace Inviter
     public class Inviter : IDalamudPlugin
     {
         public static Inviter Plugin;
-        internal Localizer localizer;
+        public Localizer localizer;
         public WindowSystem WindowSystem = new("Inviter");
         public ConfigurationWindow ConfigurationWindow;
         public Configuration Config { get; private set; }
 
-        private static readonly Lock LockInviteObj = new();
+        private readonly Lock LockInviteObj = new();
         private long NextInviteAt = 0;
 
-        private delegate IntPtr GetUIBaseDelegate();
-        private delegate IntPtr GetUIModuleDelegate(IntPtr basePtr);
-
-        private delegate char EasierProcessInviteDelegate(Int64 a1, Int64 a2, Int16 world_id, IntPtr name, char a5);
+        private delegate char EasierProcessInviteDelegate(ulong a1, ulong a2, ushort world_id, nint name, char a5);
         private readonly EasierProcessInviteDelegate _EasierProcessInvite;
 
-        private delegate char EasierProcessEurekaInviteDelegate(Int64 a1, Int64 a2);
+        private delegate char EasierProcessEurekaInviteDelegate(ulong a1, ulong a2);
         private readonly EasierProcessEurekaInviteDelegate _EasierProcessEurekaInvite;
 
         private delegate char EasierProcessCIDDelegate(nint a1, nint a2);
         private readonly Hook<EasierProcessCIDDelegate> easierProcessCIDHook;
 
-        private readonly GetUIModuleDelegate GetUIModule;
-        private delegate IntPtr GetMagicUIDelegate(IntPtr basePtr);
-        private IntPtr uiModule;
-        private Int64 uiInvite;
+        private delegate nint GetMagicUIDelegate(nint basePtr);
+        private nint uiModule;
+        private ulong uiInvite;
         private readonly Dictionary<string, long> name2CID = [];
-        internal TimedEnable timedRecruitment;
+        public TimedEnable timedRecruitment;
         private readonly List<uint> eureka_territories = [732, 763, 795, 827, 920, 975, 1252];
         [PluginService]
         public static ICommandManager CmdManager { get; private set; } = null!;
@@ -106,7 +102,7 @@ namespace Inviter
                 HelpMessage = "/xinvite - open the inviter panel.\n" +
                     "/xinvite <on/off/toggle> - turn the auto invite on/off.\n" +
                     "/xinvite <minutes> - enable temporary auto invite for certain amount of time in minutes.\n" +
-                    "/xinvite <minutes> <attempts> - enable temporary auto invite for certain amount of time in minutes and finish it after certain amount of invite attempts.\n"
+                    "/xinvite <minutes> <attempts> - enable temporary auto invite for certain amount of time in minutes and finish it after certain amount of invite attempts."
             });
             ConfigurationWindow = new();
             WindowSystem.AddWindow(ConfigurationWindow);
@@ -213,21 +209,21 @@ namespace Inviter
         private void InitUi()
         {
             uiModule = GameGui.GetUIModule();
-            if (uiModule == IntPtr.Zero)
+            if (uiModule == nint.Zero)
                 throw new ApplicationException("uiModule was null");
-            IntPtr step2 = Marshal.ReadIntPtr(uiModule) + 280;
+            nint step2 = Marshal.ReadIntPtr(uiModule) + 280;
             PluginLog.Info($"step2:0x{step2:X}");
-            if (step2 == IntPtr.Zero)
+            if (step2 == nint.Zero)
                 throw new ApplicationException("step2 was null");
-            IntPtr step3 = Marshal.ReadIntPtr(step2);
+            nint step3 = Marshal.ReadIntPtr(step2);
             PluginLog.Info($"step3:0x{step3:X}");
-            if (step3 == IntPtr.Zero)
+            if (step3 == nint.Zero)
                 throw new ApplicationException("step3 was null");
-            IntPtr step4 = Marshal.GetDelegateForFunctionPointer<GetMagicUIDelegate>(step3)(uiModule) + 6536;
+            nint step4 = Marshal.GetDelegateForFunctionPointer<GetMagicUIDelegate>(step3)(uiModule) + 6536;
             PluginLog.Info($"step4:0x{step4:X}");
-            if (step4 == (IntPtr.Zero + 6536))
+            if (step4 == (nint.Zero + 6536))
                 throw new ApplicationException("step4 was null");
-            uiInvite = Marshal.ReadInt64(step4);
+            uiInvite = (ulong)Marshal.ReadInt64(step4);
             if (uiInvite == 0)
                 throw new ApplicationException("uiInvite was 0");
         }
@@ -266,7 +262,7 @@ namespace Inviter
             return Encoding.UTF8.GetString(byteSpan[..length]);
         }
 
-        public static string StringFromNativeUtf8(IntPtr nativeUtf8)
+        public static string StringFromNativeUtf8(nint nativeUtf8)
         {
             int len = 0;
             while (Marshal.ReadByte(nativeUtf8, len) != 0)
@@ -359,12 +355,12 @@ namespace Inviter
             Log($"Invite:{player.PlayerName}@{player.World.Value.Name}");
             string player_name = player.PlayerName;
             var player_bytes = Encoding.UTF8.GetBytes(player_name);
-            IntPtr mem1 = Marshal.AllocHGlobal(player_bytes.Length + 1);
+            nint mem1 = Marshal.AllocHGlobal(player_bytes.Length + 1);
             Marshal.Copy(player_bytes, 0, mem1, player_bytes.Length);
             Marshal.WriteByte(mem1, player_bytes.Length, 0);
             lock (LockInviteObj)
             {
-                _EasierProcessInvite(uiInvite, 0, (short)player.World.RowId, mem1, (char)1);
+                _EasierProcessInvite(uiInvite, 0, (ushort)player.World.RowId, mem1, (char)1);
             }
             Marshal.FreeHGlobal(mem1);
         }
@@ -374,7 +370,7 @@ namespace Inviter
             int delay = Math.Max(500, Config.Delay); // 500ms to make sure the name2CID is updated
             Thread.Sleep(delay);
             string playerNameKey = $"{player.PlayerName}@{player.World.RowId}";
-            if (!name2CID.TryGetValue(playerNameKey, out long CID))
+            if (!name2CID.TryGetValue(playerNameKey, out var CID))
             {
                 LogError($"Unable to get CID:{player.PlayerName}@{player.World.Value.Name}");
                 return;
@@ -382,7 +378,7 @@ namespace Inviter
             Log($"Invite in Eureka:{player.PlayerName}@{player.World.Value.Name}");
             lock (LockInviteObj)
             {
-                _EasierProcessEurekaInvite(uiInvite, CID);
+                _EasierProcessEurekaInvite(uiInvite, (ulong)CID);
             }
         }
 

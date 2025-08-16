@@ -4,7 +4,7 @@ using System.Threading;
 
 namespace Inviter
 {
-    class TimedEnable
+    public class TimedEnable
     {
         private Timer? timer;
         private long runUntil;

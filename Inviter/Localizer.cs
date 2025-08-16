@@ -2,7 +2,7 @@
 
 namespace Inviter
 {
-    class Localizer
+    public class Localizer
     {
         public string Language = "en";
         private readonly Dictionary<string, string> zh = [];
