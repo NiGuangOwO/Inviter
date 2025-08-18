@@ -1,17 +1,12 @@
-﻿using Lumina.Data;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
-namespace Inviter.Gui
+namespace Inviter
 {
-    class Localizer
+    public class Localizer
     {
         public string Language = "en";
-        private Dictionary<string, string> zh = new Dictionary<string, string> { };
-        private Dictionary<string, string> fr = new Dictionary<string, string> { };
+        private readonly Dictionary<string, string> zh = [];
+        private readonly Dictionary<string, string> fr = [];
         public Localizer(string language = "en")
         {
             Language = language;
@@ -20,9 +15,10 @@ namespace Inviter.Gui
         }
         public string Localize(string message)
         {
-            if (message == null) return message;
-            else if (Language == "zh") return zh.ContainsKey(message) ? zh[message] : message;
-            else if (Language == "fr") return fr.ContainsKey(message) ? fr[message] : message;
+            if (Language == "zh")
+                return zh.TryGetValue(message, out string? value) ? value : message;
+            else if (Language == "fr")
+                return fr.TryGetValue(message, out string? value) ? value : message;
             return message;
         }
         private void LoadZh()
@@ -98,6 +94,7 @@ namespace Inviter.Gui
             zh.Add("Recruitment is not running, can not cancel", "限时自动邀请未运行，无法取消");
             zh.Add("Time can not be negative", "时间不能为负数");
             zh.Add("Please enter amount of time in minutes", "请输入分钟数作为时长");
+            zh.Add("Recruitment will finish after {0} invitation attempts", "自动邀请将在完成{0}次邀请后关闭");
         }
         private void LoadFr()
         {
